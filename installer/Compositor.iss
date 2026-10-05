@@ -80,10 +80,10 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-{ Where a fresh install goes: D:\{#AppName} when there is a D: with room for it, and the old
-  {autopf}\{#AppName} when there is not. Only the default is decided here — the directory page still
-  appears, and an existing installation keeps its own directory because Inno Setup remembers it
-  under the same AppId and upgrades it in place. }
+{ Where a fresh install goes: a Compositor folder on D: when that drive exists with room for it,
+  and the previous default when it does not. Only the default is decided here: the directory page
+  still appears, and an existing installation keeps its own directory because Inno Setup remembers
+  it under the same AppId and upgrades it in place. }
 function GetDefaultDir(Param: String): String;
 var
   FreeMB: Cardinal;
