@@ -1,0 +1,57 @@
+name: Windows build
+
+# The port is C#, .NET 10 and Avalonia. This workflow is what keeps it compiling and passing without
+# anyone watching — the upstream repository's own verify.yml is Xcode's and cannot build any of this.
+#
+# The port at the repository root came from `windows/` inside a larger tree; the path filters that used
+# to guard it are gone with the rest of that tree, and this repository's only contents are the port.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Warnings are errors here: the port has been held at zero, and a warning is what catches a name
+      # that resolved to the wrong member.
+      - name: Build
+        run: dotnet build Compositor.slnx -warnaserror --nologo
+
+      - name: Test
+        run: dotnet test tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj --nologo
+
+      # The window, driven with a pointer. It runs on Avalonia's headless platform, so it needs no
+      # display: it builds the real window, clicks it, and fails with a non-zero exit code if anything
+      # it asserts does not hold.
+      - name: Drive the window with a pointer
+        run: dotnet run --project src/Compositor.Desktop/Compositor.Desktop.csproj -- --clicks clicks.png
+
+      # The window's own smoke test, which also reports whether the window accepts dropped files.
+      - name: Build and draw the window
+        run: dotnet run --project src/Compositor.Desktop/Compositor.Desktop.csproj -- --window window.png
+
+      # A publish must not bring back the native libraries for the other four platforms, or the debug
+      # symbols. 64 MB is the expected size; 866 MB means the RuntimeIdentifier was lost.
+      - name: Publish
+        run: dotnet publish src/Compositor.Desktop -c Release -o dist-slim --nologo
+
+      - name: Check the published size
+        shell: pwsh
+        run: |
+          $mb = [math]::Round((Get-ChildItem dist-slim -Recurse -File | Measure-Object Length -Sum).Sum / 1MB, 1)
+          Write-Host "dist-slim is $mb MB"
+          if ($mb -gt 120) {
+            Write-Error "The published output is $mb MB; the runtime identifier or the symbol drop was lost."
+          }
+          if (Get-ChildItem dist-slim -Recurse -Filter *.pdb) {
+            Write-Error "Debug symbols were published."
+          }

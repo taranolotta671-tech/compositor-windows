@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+dist/
+dist-app/
+dist-slim/
+
+# The built installer. Publish it as a GitHub Release rather than committing 20 MB of binary, and note
+# that GitHub's release assets are what a download link should point at.
+installer/output/
+
+# Visual Studio, Rider and the .NET SDK
+.vs/
+.idea/
+*.user
+*.suo
+
+# Pictures the self-checks write. They are named on the command line, so these are only the ones the
+# documented invocations produce.
+clicks.png
+tools-rail.png
+window.png
+color-picker.png
+
+# Windows
+Thumbs.db
+desktop.ini
