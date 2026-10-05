@@ -141,7 +141,10 @@ public class ManifestFormatTests : ProjectTestBase
 
         using var snapshot = ProjectStore.Load(PathIn("Guide.comp"));
         var written = Serialized(snapshot.Manifest);
-        Assert.Equal(ExpectedMinimalManifest, written);
+        // A raw string literal takes its line endings from the source file, so on a checkout that
+        // arrived with CRLF the expected text would carry \r\n while the writer emits the bare \n
+        // it is specified to emit. Normalise the expectation; the writer is the thing under test.
+        Assert.Equal(ExpectedMinimalManifest.ReplaceLineEndings("\n"), written);
 
         var rewritten = Serialized(ManifestJson.Deserialize(Encoding.UTF8.GetBytes(written)));
         Assert.Equal(written, rewritten);

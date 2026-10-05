@@ -1,0 +1,20 @@
+# Line endings are part of what this project tests, so they must not depend on the machine.
+#
+# ManifestJson.Serialize writes a bare \n on purpose: the Mac build this port follows ends a
+# pretty-printed line the same way, and taking the platform default would make every save on
+# Windows a whole-file diff against a project a Mac wrote. Tests that compare against raw string
+# literals inherit their line endings from the source file, so a checkout that arrives as CRLF
+# makes those expectations disagree with the writer. Keep every text file LF so the checkout is
+# identical everywhere, and the test that broke in CI cannot break that way again.
+* text=auto eol=lf
+
+# Binary formats: never touch their bytes.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.skn binary
+*.ttf binary
+*.packet binary
