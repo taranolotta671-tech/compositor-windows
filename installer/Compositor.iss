@@ -28,8 +28,11 @@ AppSupportURL={#PortURL}
 VersionInfoVersion={#AppVersion}
 VersionInfoDescription={#AppName} Setup — the open-source Photoshop alternative
 
-; {autopf} is Program Files for an all-users install and the local Programs folder for a per-user one.
-DefaultDirName={autopf}\{#AppName}
+; The default used to be {autopf}, which is Program Files for an all-users install and the per-user
+; Programs folder otherwise — the system drive either way. A fresh install now defaults to D:\,
+; because the system drive is not where a 64 MB application belongs. The directory page still shows,
+; so anyone who wants somewhere else can say so. GetDefaultDir below decides it.
+DefaultDirName={code:GetDefaultDir}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 ; Per-user by default so no elevation is needed, with the choice offered on the way in.
@@ -48,7 +51,10 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 
-LicenseFile=..\..\LICENSE
+; The repository root, one level up. This was ..\..\LICENSE, which is where it sat inside the
+; upstream windows/ subtree; this repository is flat, so two levels up walks out of it and Inno
+; Setup fails to compile. CI never caught it because nothing here compiles this script.
+LicenseFile=..\LICENSE
 
 [Languages]
 ; Compositor's own interface is English, and Inno Setup ships no Simplified Chinese translation
@@ -63,7 +69,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\dist-slim\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; The MIT notice travels with the build — the licence asks for it, and the repository carries the same
 ; file at its root. It is shown during setup as well, through LicenseFile above.
-Source: "..\..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -74,6 +80,21 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+{ Where a fresh install goes: D:\{#AppName} when there is a D: with room for it, and the old
+  {autopf}\{#AppName} when there is not. Only the default is decided here — the directory page still
+  appears, and an existing installation keeps its own directory because Inno Setup remembers it
+  under the same AppId and upgrades it in place. }
+function GetDefaultDir(Param: String): String;
+var
+  FreeMB: Cardinal;
+  TotalMB: Cardinal;
+begin
+  if GetSpaceOnDisk(ExpandConstant('D:\'), True, FreeMB, TotalMB) and (FreeMB >= 1024) then
+    Result := ExpandConstant('D:\{#AppName}')
+  else
+    Result := ExpandConstant('{autopf}\{#AppName}');
+end;
+
 { Whether the .NET 10 desktop runtime is on the machine: the app is framework-dependent, so without it
   the shortcut would install and then do nothing. Both the machine-wide and the per-user place are
   looked in, since .NET installs to either. }
